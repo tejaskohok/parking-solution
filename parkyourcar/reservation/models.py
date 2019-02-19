@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from django.conf import settings
 from django.db import models
 
+
 class ParkingSpace(models.Model):
     """ Model class to store parking space """
     parking_space_id = models.AutoField(primary_key=True)
@@ -11,7 +12,7 @@ class ParkingSpace(models.Model):
     long = models.DecimalField(max_digits=9, decimal_places=6, blank=False)
     slots = models.IntegerField(blank=False)
     hourly_rate = models.IntegerField(blank=False)
-    zipcode = models.CharField(max_length=10, blank=False)
+    zip_code = models.CharField(max_length=10, blank=False)
     available_slots = models.IntegerField(blank=False)
 
     def __str__(self):
@@ -28,6 +29,6 @@ class Reservation(models.Model):
     )
     reservation_id = models.AutoField(primary_key=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    parking_space_id =  models.ForeignKey(ParkingSpace)
+    parking_space_id = models.ForeignKey(ParkingSpace)
     status = models.CharField(max_length=10, choices=RESERVATION_STATUS_CHOICES, blank=False)
     reserve_from_time = models.DateTimeField(blank=False)
