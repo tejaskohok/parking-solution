@@ -13,11 +13,13 @@ from rest_framework import status
 from math import sin, cos, sqrt, atan2, radians
 from .models import ParkingSpace, Reservation
 from django.core.exceptions import ObjectDoesNotExist
-from .serializers import parkingSpaceSerializers, reservationSerializers
+from .serializers import ParkingSpaceSerializers, ReservationSerializers
 
 
 class ParkingSpaceHandler(APIView):
     """ Class to handle request regarding parking spaces """
+
+    DEFAULT_SEARCH_RADIUS = 5
 
     @classmethod
     def get_distance(cls, lat1, lon1, lat2, lon2):
@@ -42,14 +44,15 @@ class ParkingSpaceHandler(APIView):
 
         user_lat = float(request.query_params.get("latitude"))
         user_long = float(request.query_params.get("longitude"))
-        search_radius = int(request.query_params.get("radius")) if request.query_params.get("radius") else 5
+        search_radius = int(request.query_params.get("radius")) if request.query_params.get("radius") else \
+            ParkingSpaceHandler.DEFAULT_SEARCH_RADIUS
 
         parking_spaces = [parking_space for parking_space in ParkingSpace.objects.all()
-                          if ParkingSpaceHandler.__get_distance(user_lat, user_long, parking_space.lat,
-                                                                parking_space.long) <= search_radius
+                          if ParkingSpaceHandler.get_distance(user_lat, user_long, parking_space.lat,
+                                                              parking_space.long) <= search_radius
                           and parking_space.available_slots > 0]
 
-        serializer = parkingSpaceSerializers(parking_spaces, many=True)
+        serializer = ParkingSpaceSerializers(parking_spaces, many=True)
         return Response(serializer.data)
 
 
@@ -59,7 +62,7 @@ class ReservationHandler(APIView):
     def get(self, request, user_id):
         """ Function to view reservations of a given user """
         reservation = Reservation.objects.filter(user_id=user_id)
-        serializer = reservationSerializers(reservation, many=True)
+        serializer = ReservationSerializers(reservation, many=True)
         return Response(serializer.data)
 
     def post(self, request):
@@ -85,10 +88,9 @@ class ReservationHandler(APIView):
             response = json.dumps({"error": "Reservation time is prior to current time"})
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = reservationSerializers(data=request.data)
+        serializer = ReservationSerializers(data=request.data)
         if serializer.is_valid():
             instance = serializer.save()
-
             parking_space = ParkingSpace.objects.get(parking_space_id=instance.parking_space_id_id)
             parking_space.available_slots -= 1  # Reduce available slots
             parking_space.save()
@@ -112,5 +114,5 @@ class ReservationHandler(APIView):
         canceled_reservation = json.dumps(
             {"user": reservation.user.username, "reservation_id": reservation.reservation_id,
              "status": reservation.status})
-        respose = Response(canceled_reservation, status=status.HTTP_204_NO_CONTENT)
-        return respose
+        response = Response(canceled_reservation, status=status.HTTP_204_NO_CONTENT)
+        return response
